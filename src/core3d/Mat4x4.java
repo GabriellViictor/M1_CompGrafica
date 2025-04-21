@@ -96,11 +96,11 @@ public class Mat4x4 {
 	}
 
 
-	public void setRotateZ(float ang) {
+	public void setRotateZ(double ang) {
 		zera();
-		float rad = ang*0.017453f;
-		float sin = (float)Math.sin(rad);
-		float cos = (float)Math.cos(rad);
+		double rad = ang*0.017453f;
+		double sin = (float)Math.sin(rad);
+		double cos = (float)Math.cos(rad);
 		mat[0][0] = cos;
 		mat[0][1] = -sin;
 		mat[0][2] = 0;
@@ -122,21 +122,21 @@ public class Mat4x4 {
 		mat[3][3] = 1;
 	}
 
-	public void setRotateAny(float ang, float x, float y, float z) {
+	public void setRotateAny(double ang, double x, double y, double z) {
 		zera();
 
 		float length = (float)Math.sqrt(x*x + y*y + z*z);
 
 		if (length == 0) length = 1; // evita divisão por zero
 
-		float ux = x/length;
-		float uy = y/length;
-		float uz = z/length;
+		double ux = x/length;
+		double uy = y/length;
+		double uz = z/length;
 
-		float rad = ang * 0.017453f;
-		float cos = (float)Math.cos(rad);
-		float sin = (float)Math.sin(rad);
-		float oneMinusCos = 1.0f - cos;
+		double rad = ang * 0.017453f;
+		double cos = (float)Math.cos(rad);
+		double sin = (float)Math.sin(rad);
+		double oneMinusCos = 1.0f - cos;
 
 		mat[0][0] = cos + ux*ux*oneMinusCos;
 		mat[0][1] = ux*uy*oneMinusCos - uz*sin;

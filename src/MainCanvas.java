@@ -107,8 +107,6 @@ public class MainCanvas extends JPanel implements Runnable {
 
 		imgtmp = loadImage("fundo.jpg");
 
-		imageBuffer = new BufferedImage(640, 480, BufferedImage.TYPE_4BYTE_ABGR);
-
 		bufferDeVideo = ((DataBufferByte) imageBuffer.getRaster().getDataBuffer()).getData();
 
 		System.out.println("Buffer SIZE " + bufferDeVideo.length);
@@ -155,10 +153,14 @@ public class MainCanvas extends JPanel implements Runnable {
 					RIGHT = true;
 				}
 				if (key == KeyEvent.VK_Z) {
-					for (int i = 0; i < listaDeTriangulos.size(); i++) {
-						Triangulo3D tri = listaDeTriangulos.get(i);
-						tri.escala(0.8f, 0.8f,0.8f);
-					}
+					//for (int i = 0; i < listaDeTriangulos.size(); i++) {
+					//	Triangulo3D tri = listaDeTriangulos.get(i);
+						Mat4x4 scale = new Mat4x4();
+						scale.setScale(0.8f, 0.8f,0.8f);
+						Mat4x4 m = viewMatrix.multiplicaMatrix(scale);
+						viewMatrix = m;
+						//tri.escala(0.8f, 0.8f,0.8f);
+					//}
 				}
 				if (key == KeyEvent.VK_X) {
 					for (int i = 0; i < listaDeTriangulos.size(); i++) {
@@ -174,25 +176,68 @@ public class MainCanvas extends JPanel implements Runnable {
 
 				}
 				if (key == KeyEvent.VK_E) {
-					for (int i = 0; i < listaDeTriangulos.size(); i++) {
-						Triangulo3D tri = listaDeTriangulos.get(i);
-						tri.rotacaoX(+5);
-					}
+					Mat4x4 rot = new Mat4x4();
+					rot.setRotateY(+5);
+					Mat4x4 m = viewMatrix.multiplicaMatrix(rot);
+					viewMatrix = m;
 				}
 
 				if (key == KeyEvent.VK_J) {
-					for (int i = 0; i < listaDeTriangulos.size(); i++) {
+					/*for (int i = 0; i < listaDeTriangulos.size(); i++) {
 						Triangulo3D tri = listaDeTriangulos.get(i);
 						tri.anyRotation(+5, 5.0f,5.0f,5.0f);
-					}
+					}*/
+					Mat4x4 rot = new Mat4x4();
+					rot.setRotateAny(5, 7, 14, 18);
+					Mat4x4 m = viewMatrix.multiplicaMatrix(rot);
+					viewMatrix = m;
 				}
 
 				if (key == KeyEvent.VK_T) {
-					for (int i = 0; i < listaDeTriangulos.size(); i++) {
+					/*for (int i = 0; i < listaDeTriangulos.size(); i++) {
 						Triangulo3D tri = listaDeTriangulos.get(i);
 						tri.projecoes(+5, 5.0f);
 					}
+					*/
 				}
+
+			}
+		});
+
+
+		addMouseListener(new MouseListener() {
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				// TODO Auto-generated method stub
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+				// TODO Auto-generated method stub
+				clickX = e.getX();
+				clickY = e.getY();
+
+				if(e.getButton()==3) {
+					eixoX = clickX;
+					eixoY = clickY;
+				}
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				// TODO Auto-generated method stub
 
 			}
 		});
@@ -402,14 +447,22 @@ public class MainCanvas extends JPanel implements Runnable {
 	}
 
 	public void desenhaPixel(int x, int y, int r, int g, int b) {
+		if (x < 0 || x >= W || y < 0 || y >= H) {
+			return; // Ignora pixels fora da tela
+		}
+
 		int pospix = y * (W * 4) + x * 4;
 
-		bufferDeVideo[pospix] = (byte) 255;
+		if (pospix < 0 || pospix + 3 >= bufferDeVideo.length) {
+			return; // Segurança extra caso o cálculo ainda estoure
+		}
+
+		bufferDeVideo[pospix]     = (byte) 255;
 		bufferDeVideo[pospix + 1] = (byte) (b & 0xff);
 		bufferDeVideo[pospix + 2] = (byte) (g & 0xff);
 		bufferDeVideo[pospix + 3] = (byte) (r & 0xff);
-
 	}
+
 
 	public void start() {
 		runner = new Thread(this);
@@ -431,19 +484,21 @@ public class MainCanvas extends JPanel implements Runnable {
 			filtroB = rand.nextFloat();
 		}
 
-		for (int i = 0; i < listaDeTriangulos.size(); i++) {
-			Triangulo3D tri = listaDeTriangulos.get(i);
+		//for (int i = 0; i < listaDeTriangulos.size(); i++) {
+		//	Triangulo3D tri = listaDeTriangulos.get(i);
+			Mat4x4 trans = new Mat4x4();
+
 			if (UP) {
-				tri.translacao(0, -1,0);
+				trans.setTranslate(0, -0.1,0);
 			}
 			if (DOWN) {
-				tri.translacao(0, +1,0);
+				trans.setTranslate(0, +0.1,0);
 			}
 			if (LEFT) {
-				tri.translacao(-1, 0,0);
+				trans.setTranslate(-0.1, 0,0);
 			}
 			if (RIGHT) {
-				tri.translacao(+1, 0,0);
+				trans.setTranslate(+0.1, 0,0);
 			}
 		}
 
