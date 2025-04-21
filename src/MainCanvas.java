@@ -197,64 +197,48 @@ public class MainCanvas extends JPanel implements Runnable {
 			}
 		});
 
-		addMouseListener(new MouseListener() {
-			@Override
-			public void mouseReleased(MouseEvent e) {
-				// TODO Auto-generated method stub
+		//Triangulo3D tri = new Triangulo3D(new Ponto3D(0, 0, 0), new Ponto3D(200, 0, 0), new Ponto3D(0, 200, 0));
+		//criaCubo(100,100,0,100,100,100);
+		//criaCubo(300,200,0,100,200,100);
 
-			}
+		carregarAK47("lowpolycat/cat.obj");
+	}
 
-			@Override
-			public void mousePressed(MouseEvent e) {
-				// TODO Auto-generated method stub
-				clickX = e.getX();
-				clickY = e.getY();
-				
-				if(e.getButton()==3) {
-					eixoX = clickX;
-					eixoY = clickY;
+	private void carregarAK47(String caminho) {
+		ArrayList<Ponto3D> vertices = new ArrayList<>();
+
+		try {
+			FileInputStream fis = new FileInputStream(caminho);
+			DataInputStream dis = new DataInputStream(fis);
+			String linha;
+
+			while ((linha = dis.readLine()) != null) {
+				if (linha.startsWith("v ")) {
+					// Linha de vértice
+					String[] partes = linha.split("\\s+");
+					float x = Float.parseFloat(partes[1]);
+					float y = Float.parseFloat(partes[2]);
+					float z = Float.parseFloat(partes[3]);
+					vertices.add(new Ponto3D(x, y, z));
+				} else if (linha.startsWith("f ")) {
+					// Linha de face
+					String[] partes = linha.split("\\s+");
+					int v1 = Integer.parseInt(partes[1].split("/")[0]) - 1;
+					int v2 = Integer.parseInt(partes[2].split("/")[0]) - 1;
+					int v3 = Integer.parseInt(partes[3].split("/")[0]) - 1;
+
+					Triangulo3D triangulo = new Triangulo3D(vertices.get(v1), vertices.get(v2), vertices.get(v3));
+					listaDeTriangulos.add(triangulo);
 				}
 			}
 
-			@Override
-			public void mouseExited(MouseEvent e) {
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				// TODO Auto-generated method stub
-
-			}
-		});
-
-		addMouseMotionListener(new MouseMotionListener() {
-
-			@Override
-			public void mouseMoved(MouseEvent arg0) {
-				// TODO Auto-generated method stub
-				mouseX = arg0.getX();
-				mouseY = arg0.getY();
-			}
-
-			@Override
-			public void mouseDragged(MouseEvent arg0) {
-				// TODO Auto-generated method stub
-
-			}
-		});
-
-		//Triangulo3D tri = new Triangulo3D(new Ponto3D(0, 0, 0), new Ponto3D(200, 0, 0), new Ponto3D(0, 200, 0));
-		criaCubo(100,100,0,100,100,100);
-		criaCubo(300,200,0,100,200,100);
+			dis.close();
+			fis.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
+
 
 	private void criaCubo(float x,float y, float z, float lx,float ly, float lz) {
 		Ponto3D p1 = new Ponto3D(x, y, z);
