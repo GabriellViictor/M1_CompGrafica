@@ -19,6 +19,8 @@ public class Triangulo3D {
 		this.pb = new Ponto3D(tri.pb);
 		this.pc = new Ponto3D(tri.pc);
 	}
+
+
 	
 	public void desenhase(Graphics2D dbg) {
 		dbg.drawLine((int)pa.x,(int)pa.y,(int)pb.x,(int)pb.y);

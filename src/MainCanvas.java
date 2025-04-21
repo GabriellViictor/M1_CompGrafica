@@ -364,6 +364,43 @@ public class MainCanvas extends JPanel implements Runnable {
 		}
 	}
 
+	private void limparBuffer() {
+		for (int i = 0; i < bufferDeVideo.length; i += 4) {
+			bufferDeVideo[i] = (byte) 0;
+			bufferDeVideo[i + 1] = (byte) 255;
+			bufferDeVideo[i + 2] = (byte) 255;
+			bufferDeVideo[i + 3] = (byte) 255;
+		}
+	}
+
+	public void bresenham(int x1, int y1, int x2, int y2) {
+		int dx = Math.abs(x2 - x1);
+		int dy = Math.abs(y2 - y1);
+
+		int passo_x = (x1 < x2) ? 1 : -1;
+		int passo_y = (y1 < y2) ? 1 : -1;
+
+		int erro = dx - dy;
+
+		while (true) {
+			//System.out.println("(" + x1 + ", " + y1 + ")");
+			desenhaPixel(x1, y1, 255, 0, 0);
+			if (x1 == x2 && y1 == y2)
+				break;
+
+			int erro2 = 2 * erro;
+
+			if (erro2 > -dy) {
+				erro -= dy;
+				x1 += passo_x;
+			}
+			if (erro2 < dx) {
+				erro += dx;
+				y1 += passo_y;
+			}
+		}
+	}
+
 	public void desenhaPixel(int x, int y, int r, int g, int b) {
 		int pospix = y * (W * 4) + x * 4;
 
