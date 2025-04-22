@@ -20,8 +20,8 @@ public class Ponto3D {
 		this.z = z;
 		this.w = 1;
 	}
-	
-	
+
+
 
 	public Ponto3D(float x, float y,float z, float w) {
 		super();

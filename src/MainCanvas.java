@@ -26,6 +26,7 @@ import core2d.Ponto2D;
 import core2d.Triangulo2D;
 import core3d.Ponto3D;
 import core3d.Triangulo3D;
+import core3d.Mat4x4;
 
 public class MainCanvas extends JPanel implements Runnable {
 	int W = 800;
@@ -79,6 +80,9 @@ public class MainCanvas extends JPanel implements Runnable {
 	int eixoX = 0;
 	int eixoY = 0;
 
+	Mat4x4 viewMatrix = new Mat4x4();
+	Mat4x4 projectionMatrix = new Mat4x4();
+
 	public MainCanvas() {
 
 		File f = new File("imgbmp.bmp");
@@ -97,15 +101,17 @@ public class MainCanvas extends JPanel implements Runnable {
 			e1.printStackTrace();
 		}
 
-		setSize(640, 480);
+		setSize(800, 650);
 		setFocusable(true);
 
-		Largura = 640;
-		Altura = 480;
+		Largura = 800;
+		Altura = 650;
 
-		pixelSize = 640 * 480;
+		pixelSize = 800 * 650;
 
 		imgtmp = loadImage("fundo.jpg");
+
+		imageBuffer = new BufferedImage(800, 650, BufferedImage.TYPE_4BYTE_ABGR);
 
 		bufferDeVideo = ((DataBufferByte) imageBuffer.getRaster().getDataBuffer()).getData();
 
@@ -163,17 +169,20 @@ public class MainCanvas extends JPanel implements Runnable {
 					//}
 				}
 				if (key == KeyEvent.VK_X) {
-					for (int i = 0; i < listaDeTriangulos.size(); i++) {
-						Triangulo3D tri = listaDeTriangulos.get(i);
-						tri.escala(1.2f, 1.2f, 1.2f);
-					}
+					//for (int i = 0; i < listaDeTriangulos.size(); i++) {
+					//	Triangulo3D tri = listaDeTriangulos.get(i);
+						Mat4x4 scale = new Mat4x4();
+						scale.setScale(1.2f, 1.2f,1.2f);
+						Mat4x4 m = viewMatrix.multiplicaMatrix(scale);
+						viewMatrix = m;
+						//tri.escala(1.2f, 1.2f, 1.2f);
+					//}
 				}
 				if (key == KeyEvent.VK_Q) {
-					for (int i = 0; i < listaDeTriangulos.size(); i++) {
-						Triangulo3D tri = listaDeTriangulos.get(i);
-						tri.rotacaoZ(-5);
-					}
-
+					Mat4x4 rot = new Mat4x4();
+					rot.setRotateY(-5);
+					Mat4x4 m = viewMatrix.multiplicaMatrix(rot);
+					viewMatrix = m;
 				}
 				if (key == KeyEvent.VK_E) {
 					Mat4x4 rot = new Mat4x4();
@@ -247,6 +256,10 @@ public class MainCanvas extends JPanel implements Runnable {
 		//criaCubo(300,200,0,100,200,100);
 
 		carregarAK47("lowpolycat/cat.obj");
+
+		viewMatrix.setIdentity();
+		projectionMatrix.setIdentity();
+		projectionMatrix.setPerspectiva(600);
 	}
 
 	private void carregarAK47(String caminho) {
@@ -348,7 +361,7 @@ public class MainCanvas extends JPanel implements Runnable {
 
 	@Override
 	public void paint(Graphics g) {
-
+		limparBuffer();
 //		for(int i = 0; i < bufferDeVideo.length; i++) {
 //			bufferDeVideo[i] = 0;
 //		}
@@ -361,6 +374,9 @@ public class MainCanvas extends JPanel implements Runnable {
 		g.setColor(Color.blue);
 		g.fillRect(eixoX-2, eixoY-2, 5, 5);
 
+		g.setColor(Color.green);
+		g.drawRect(50, 50, 700, 550);
+
 //		g.setColor(Color.green);
 //		g.drawRect(50, 50, 700, 500);
 
@@ -370,11 +386,12 @@ public class MainCanvas extends JPanel implements Runnable {
 //		}
 
 		g.setColor(Color.black);
+
+
+
 		for (int i = 0; i < listaDeTriangulos.size(); i++) {
 			Triangulo3D tri = listaDeTriangulos.get(i);
-			Triangulo3D novoTri = new Triangulo3D(tri);
-			novoTri.projecoes(+5, 5.0f);
-			novoTri.desenhase((Graphics2D) g);
+			desenhase(tri,(Graphics2D) g,viewMatrix, projectionMatrix);
 		}
 
 		g.drawImage(imageBuffer, 0, 0, null);
@@ -500,8 +517,96 @@ public class MainCanvas extends JPanel implements Runnable {
 			if (RIGHT) {
 				trans.setTranslate(+0.1, 0,0);
 			}
+			Mat4x4 m = viewMatrix.multiplicaMatrix(trans);
+			viewMatrix = m;
+		//}
+
+	}
+
+
+	private boolean clipLinha(Linha2D linha) {
+		final int INSIDE = 0; // 0000
+		final int LEFT = 1;   // 0001
+		final int RIGHT = 2;  // 0010
+		final int BOTTOM = 4; // 0100
+		final int TOP = 8;    // 1000
+
+		// Limites do retângulo de clipping (sua tela)
+		float xmin = 50, ymin = 50, xmax = 750, ymax = 600;
+
+		// Pega os pontos da linha
+		float x0 = linha.a.x;
+		float y0 = linha.a.y;
+		float x1 = linha.b.x;
+		float y1 = linha.b.y;
+
+
+
+		// Função interna para calcular o código da região
+		java.util.function.BiFunction<Float, Float, Integer> computeOutCode = (x, y) -> {
+			int code = INSIDE;
+			if (x < xmin) code |= LEFT;
+			else if (x > xmax) code |= RIGHT;
+			if (y < ymin) code |= BOTTOM;
+			else if (y > ymax) code |= TOP;
+			return code;
+		};
+
+		int outcode0 = computeOutCode.apply(x0, y0);
+		int outcode1 = computeOutCode.apply(x1, y1);
+
+		boolean accept = false;
+
+		while (true) {
+			if ((outcode0 | outcode1) == 0) {
+				// Ambas as extremidades dentro da janela
+				accept = true;
+				break;
+			} else if ((outcode0 & outcode1) != 0) {
+				// Ambas fora da mesma região: rejeita
+				break;
+			} else {
+				//break;
+
+				// Pelo menos uma extremidade está fora
+				float x = 0, y = 0;
+				int outcodeOut = (outcode0 != 0) ? outcode0 : outcode1;
+
+				if ((outcodeOut & TOP) != 0) {
+					x = x0 + (x1 - x0) * (ymax - y0) / (y1 - y0);
+					y = ymax;
+				} else if ((outcodeOut & BOTTOM) != 0) {
+					x = x0 + (x1 - x0) * (ymin - y0) / (y1 - y0);
+					y = ymin;
+				} else if ((outcodeOut & RIGHT) != 0) {
+					y = y0 + (y1 - y0) * (xmax - x0) / (x1 - x0);
+					x = xmax;
+				} else if ((outcodeOut & LEFT) != 0) {
+					y = y0 + (y1 - y0) * (xmin - x0) / (x1 - x0);
+					x = xmin;
+				}
+
+				if (outcodeOut == outcode0) {
+					x0 = x;
+					y0 = y;
+					outcode0 = computeOutCode.apply(x0, y0);
+				} else {
+					x1 = x;
+					y1 = y;
+					outcode1 = computeOutCode.apply(x1, y1);
+				}
+			}
 		}
 
+		if (accept) {
+			linha.a.x = x0;
+			linha.a.y = y0;
+			linha.b.x = x1;
+			linha.b.y = y1;
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	@Override
@@ -548,6 +653,46 @@ public class MainCanvas extends JPanel implements Runnable {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			return null;
+		}
+	}
+
+	public void desenhase(Triangulo3D tri, Graphics2D dbg,Mat4x4 vew,Mat4x4 projection) {
+		Ponto3D pa2 = vew.multiplicaVetor(tri.getPa());
+		Ponto3D pb2 = vew.multiplicaVetor(tri.getPb());
+		Ponto3D pc2 = vew.multiplicaVetor(tri.getPc());
+
+		pa2 = projection.multiplicaVetor(pa2);
+		pb2 = projection.multiplicaVetor(pb2);
+		pc2 = projection.multiplicaVetor(pc2);
+
+		pa2.normalizaW();
+		pb2.normalizaW();
+		pc2.normalizaW();
+
+		pa2.x+=400;
+		pb2.x+=400;
+		pc2.x+=400;
+
+		pa2.y+=325;
+		pb2.y+=325;
+		pc2.y+=325;
+/*
+		dbg.drawLine();
+*/
+		Ponto2D Pa= new Ponto2D(pa2.x, pa2.y);
+		Ponto2D Pb= new Ponto2D(pb2.x, pb2.y);
+		Ponto2D Pc= new Ponto2D(pc2.x, pc2.y);
+
+		Linha2D l1 = new Linha2D(Pa, Pb);
+		Linha2D l2 = new Linha2D(Pb, Pc);
+		Linha2D l3 = new Linha2D(Pc, Pa);
+		Linha2D[] lados = {l1, l2, l3};
+
+		for (Linha2D l : lados) {
+			Linha2D lClip = new Linha2D(l.a, l.b); // cópia da linha
+			if (clipLinha(lClip)) {
+				bresenham((int) lClip.a.x, (int) lClip.a.y, (int) lClip.b.x, (int) lClip.b.y);
+			}
 		}
 	}
 }
