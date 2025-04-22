@@ -255,7 +255,7 @@ public class MainCanvas extends JPanel implements Runnable {
 		//criaCubo(100,100,0,100,100,100);
 		//criaCubo(300,200,0,100,200,100);
 
-		carregarAK47("lowpolycat/cat.obj");
+		carregarAK47("src/lowpolycat/cat.obj");
 
 		viewMatrix.setIdentity();
 		projectionMatrix.setIdentity();
